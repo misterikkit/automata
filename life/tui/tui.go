@@ -19,11 +19,12 @@ const (
 // TUI is a UI for the game.
 type TUI struct {
 	s tcell.Screen
+	t []rune
 	h func(Event)
 }
 
 // New allocates a TUI and takes over the terminal screen.
-func New(handler func(Event)) (*TUI, error) {
+func New(text string, handler func(Event)) (*TUI, error) {
 	s, err := tcell.NewScreen()
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to create screen")
@@ -31,7 +32,7 @@ func New(handler func(Event)) (*TUI, error) {
 	if err := s.Init(); err != nil {
 		return nil, errors.Wrapf(err, "unable to initialize screen")
 	}
-	t := &TUI{s, handler}
+	t := &TUI{s, []rune(text), handler}
 	// TODO: make this joinable
 	go func(t *TUI) {
 		for {
@@ -68,6 +69,9 @@ func (t *TUI) DrawGame(g game.Game) {
 			}
 			t.s.SetContent(c+2, r+1, val, nil, tcell.StyleDefault)
 		}
+	}
+	for i, r := range t.t {
+		t.s.SetContent(i, g.Rows()+2, r, nil, tcell.StyleDefault)
 	}
 	t.s.Sync()
 }

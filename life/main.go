@@ -20,7 +20,7 @@ func main() {
 	g := game.New(20, 30)
 	g = g.Next(game.Random)
 
-	t, err := tui.New(func(e tui.Event) {
+	t, err := tui.New("Esc to exit", func(e tui.Event) {
 		if e == tui.Escape {
 			cancel()
 		}
