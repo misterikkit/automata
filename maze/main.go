@@ -59,13 +59,15 @@ func main() {
 	} else {
 		runInteractive(context.Background(), &g, gn)
 	}
-	fmt.Printf("Final state:\n%v", tui.Fmt(g))
+	// fmt.Printf("Final state:\n%v", tui.Fmt(g))
 	fmt.Printf("Gene: %+v\n", gn)
 	fmt.Printf("Seed: %v\n", seed)
 
 	fmt.Println("Mapping...")
 	mapped := region.Map(g)
-	fmt.Printf("%v\n", mapped)
+	// fmt.Printf("%v\n", mapped)
+	fmt.Printf("Final state:\n%v", tui.Fmt(mapped))
+
 }
 
 func runAuto(g *game.Game, gn gene.Gene, n int) {
@@ -116,9 +118,15 @@ loop:
 
 		case <-pauseCh:
 			paused = !paused
+			if paused {
+				mapped := region.Map(*g)
+				t.DrawGame(mapped)
+			}
+
 		case <-stepCh:
 			*g = g.Next(rule)
-			t.DrawGame(*g)
+			mapped := region.Map(*g)
+			t.DrawGame(mapped)
 
 		case <-ctx.Done():
 			break loop

@@ -56,10 +56,20 @@ func Map(g game.Game) Mapped {
 		}
 	}
 
-	// Pass 3: replace all tags with equivalence
+	// Pass 3: replace all tags with equivalence, and normalize tags at the same time
+	norms := map[int]int{}
+	nextNorm := 0
 	for r := range m.tags {
 		for c := range m.tags[r] {
-			m.tags[r][c] = follow(equiv, m.tags[r][c])
+			if m.tags[r][c] == wall {
+				continue
+			}
+			tag := follow(equiv, m.tags[r][c])
+			if _, ok := norms[tag]; !ok {
+				norms[tag] = nextNorm
+				nextNorm++
+			}
+			m.tags[r][c] = norms[tag]
 		}
 	}
 
@@ -141,7 +151,7 @@ func (m Mapped) String() string {
 	var parts []string
 	for r := range m.tags {
 		for c := range m.tags[r] {
-			parts = append(parts, fmt.Sprintf("%3d", m.tags[r][c]))
+			parts = append(parts, fmt.Sprintf("%6d", m.tags[r][c]))
 		}
 		parts = append(parts, "\n")
 	}

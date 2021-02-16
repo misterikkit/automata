@@ -3,11 +3,23 @@ package tui
 import (
 	"bytes"
 
+	"github.com/fatih/color"
 	tcell "github.com/gdamore/tcell/v2"
 	"github.com/pkg/errors"
 
 	"github.com/misterikkit/automata/maze/game"
 )
+
+type Game interface {
+	Rows() int
+	Cols() int
+	Get(row, col int) game.Cell
+}
+
+type MappedGame interface {
+	Game
+	GetTag(row, col int) int
+}
 
 type Event int
 
@@ -61,7 +73,7 @@ func New(text string, handler func(Event)) (*TUI, error) {
 // Close releases resources and returns the terminal to normal.
 func (t *TUI) Close() { t.s.Fini() }
 
-func (t *TUI) DrawGame(g game.Game) {
+func (t *TUI) DrawGame(g Game) {
 	box(t.s, 0, 0, g.Cols()+3, g.Rows()+1)
 	for r := 0; r < g.Rows(); r++ {
 		for c := 0; c < g.Cols(); c++ {
@@ -69,7 +81,8 @@ func (t *TUI) DrawGame(g game.Game) {
 			if g.Get(r, c) {
 				val = tcell.RuneBlock
 			}
-			t.s.SetContent(c+2, r+1, val, nil, tcell.StyleDefault)
+			style := styleFor(g, r, c)
+			t.s.SetContent(c+2, r+1, val, nil, style)
 		}
 	}
 	for i, r := range t.t {
@@ -79,22 +92,23 @@ func (t *TUI) DrawGame(g game.Game) {
 }
 
 func box(s tcell.Screen, x, y, w, h int) {
+	style := tcell.StyleDefault //.Foreground(tcell.ColorAliceBlue).Background(tcell.ColorOrchid)
 	for i := 0; i < w; i++ {
-		s.SetContent(x+i, y, tcell.RuneHLine, nil, tcell.StyleDefault)
-		s.SetContent(x+i, y+h, tcell.RuneHLine, nil, tcell.StyleDefault)
+		s.SetContent(x+i, y, tcell.RuneHLine, nil, style)
+		s.SetContent(x+i, y+h, tcell.RuneHLine, nil, style)
 	}
 	for j := 0; j < h; j++ {
-		s.SetContent(x, y+j, tcell.RuneVLine, nil, tcell.StyleDefault)
-		s.SetContent(x+w, y+j, tcell.RuneVLine, nil, tcell.StyleDefault)
+		s.SetContent(x, y+j, tcell.RuneVLine, nil, style)
+		s.SetContent(x+w, y+j, tcell.RuneVLine, nil, style)
 	}
-	s.SetContent(x, y, tcell.RuneULCorner, nil, tcell.StyleDefault)
-	s.SetContent(x, y+h, tcell.RuneLLCorner, nil, tcell.StyleDefault)
-	s.SetContent(x+w, y, tcell.RuneURCorner, nil, tcell.StyleDefault)
-	s.SetContent(x+w, y+h, tcell.RuneLRCorner, nil, tcell.StyleDefault)
+	s.SetContent(x, y, tcell.RuneULCorner, nil, style)
+	s.SetContent(x, y+h, tcell.RuneLLCorner, nil, style)
+	s.SetContent(x+w, y, tcell.RuneURCorner, nil, style)
+	s.SetContent(x+w, y+h, tcell.RuneLRCorner, nil, style)
 	// Don't forget to Show() or Sync()
 }
 
-func Fmt(g game.Game) string {
+func Fmt(g MappedGame) string {
 	var b bytes.Buffer
 	// top row
 	b.WriteRune(tcell.RuneULCorner)
@@ -111,7 +125,8 @@ func Fmt(g game.Game) string {
 			case true:
 				b.WriteRune(tcell.RuneBlock)
 			case false:
-				b.WriteRune(tcell.RuneBullet)
+				color := fatihColors[g.GetTag(r, c)%len(fatihColors)]
+				b.WriteString(color.Sprint("·"))
 			}
 		}
 		b.WriteRune(tcell.RuneVLine)
@@ -125,4 +140,66 @@ func Fmt(g game.Game) string {
 	b.WriteRune(tcell.RuneLRCorner)
 	b.WriteString("\n")
 	return b.String()
+}
+
+func styleFor(g Game, row, col int) tcell.Style {
+	gm, ok := g.(MappedGame)
+	if !ok {
+		return tcell.StyleDefault
+	}
+	tag := gm.GetTag(row, col)
+	if tag < 0 {
+		return tcell.StyleDefault
+	}
+	color := tcellColors[tag%len(tcellColors)]
+	return tcell.StyleDefault.Background(color)
+}
+
+// lazy copy pasta
+var tcellColors = []tcell.Color{
+	// tcell.ColorMaroon,
+	// tcell.ColorGreen,
+	// tcell.ColorOlive,
+	// tcell.ColorNavy,
+	// tcell.ColorPurple,
+	// tcell.ColorTeal,
+	// tcell.ColorSilver,
+	// tcell.ColorGray,
+	// tcell.ColorRed,
+	// tcell.ColorLime,
+	// tcell.ColorYellow,
+	// tcell.ColorBlue,
+	// tcell.ColorFuchsia,
+	// tcell.ColorAqua,
+
+	tcell.ColorBlack,
+	tcell.ColorDarkRed,
+	tcell.ColorDarkGreen,
+	tcell.ColorDarkGoldenrod,
+	tcell.ColorDarkBlue,
+	tcell.ColorDarkMagenta,
+	tcell.ColorDarkCyan,
+	tcell.ColorRed,
+	tcell.ColorGreen,
+	tcell.ColorYellow,
+	tcell.ColorBlue,
+	tcell.ColorLightPink,
+	tcell.ColorLightCyan,
+}
+
+var fatihColors = []*color.Color{
+
+	color.New(color.BgBlack),
+	color.New(color.BgRed),
+	color.New(color.BgGreen),
+	color.New(color.BgYellow),
+	color.New(color.BgBlue),
+	color.New(color.BgMagenta),
+	color.New(color.BgCyan),
+	color.New(color.BgHiRed),
+	color.New(color.BgHiGreen),
+	color.New(color.BgHiYellow),
+	color.New(color.BgHiBlue),
+	color.New(color.BgHiMagenta),
+	color.New(color.BgHiCyan),
 }
