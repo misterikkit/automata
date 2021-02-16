@@ -13,7 +13,7 @@ const (
 	Escape Event = iota
 	Left
 	Right
-	Space
+	Enter
 )
 
 // TUI is a UI for the game.
@@ -48,8 +48,8 @@ func New(text string, handler func(Event)) (*TUI, error) {
 				t.h(Left)
 			case tcell.KeyRight:
 				t.h(Right)
-			case tcell.KeyCtrlSpace:
-				t.h(Space)
+			case tcell.KeyEnter:
+				t.h(Enter)
 			}
 		}
 	}(t)

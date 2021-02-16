@@ -15,7 +15,9 @@ import (
 
 func main() {
 	defer fmt.Println("bye!")
-	rand.Seed(time.Now().Unix())
+	seed := time.Now().Unix()
+	defer fmt.Printf("Seed: %v\n", seed)
+	rand.Seed(seed)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	var gn gene.Gene
@@ -28,10 +30,13 @@ func main() {
 	rule := gn.AsRule()
 
 	g := game.New(20, 30)
-	// g = g.Next(game.Random)
+	g = g.Next(game.Random)
 
 	t, err := tui.New(fmt.Sprintf("Gene %v\tEsc to exit", gn), func(e tui.Event) {
-		if e == tui.Escape {
+		switch e {
+		case tui.Escape:
+			cancel()
+		case tui.Enter:
 			cancel()
 		}
 	})
