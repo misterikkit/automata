@@ -16,6 +16,10 @@ import (
 func main() {
 	seed := flag.Int64("seed", 0, "random seed")
 	geneStr := flag.String("gene", "", "automata gene")
+	genCount := flag.Int("gens", 0, "if >0, run a fixed number of generations and exit")
+	life := flag.Bool("life", false, "Use game of life rules")
+	density := flag.Float64("density", 0.01, "Probability of initial cell state being alive")
+
 	flag.Parse()
 	// Set random seed
 	if *seed == 0 {
@@ -30,15 +34,29 @@ func main() {
 	} else {
 		gn = gene.FromString(*geneStr)
 	}
+	if *life {
+		gn = gene.FromString("001100000000100000") // B23/S3
+	}
 
 	// Initialize Game
 	g := game.New(40, 100)
-	g = g.Next(game.RandomSparse(0.01))
+	g = g.Next(game.RandomSparse(float32(*density)))
 
-	runInteractive(context.Background(), &g, gn)
+	if *genCount > 0 {
+		runAuto(&g, gn, *genCount)
+	} else {
+		runInteractive(context.Background(), &g, gn)
+	}
 	fmt.Printf("Final state:\n%v", tui.Fmt(g))
 	fmt.Printf("Gene: %+v\n", gn)
 	fmt.Printf("Seed: %v\n", seed)
+}
+
+func runAuto(g *game.Game, gn gene.Gene, n int) {
+	rule := gn.AsRule()
+	for i := 0; i < n; i++ {
+		*g = g.Next(rule)
+	}
 }
 
 func runInteractive(ctx context.Context, g *game.Game, gn gene.Gene) {
