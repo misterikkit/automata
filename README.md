@@ -9,7 +9,7 @@ I found some [useful "genes"][2] on Wikipedia.
 To view an interactive simulation with a random ruleset, run
 
 ```
-go run ./life
+go run ./maze
 ```
 
 and press Enter to begin.
@@ -17,25 +17,25 @@ and press Enter to begin.
 To run a fixed number of generations and print the final state, run
 
 ```
-go run ./life -gens 50
+go run ./maze -gens 50
 ```
 
 [Maze][3] ruleset
 
 ```
-go run ./life -gene 0001000000111110000 -gens 100
+go run ./maze -gene 0001000000111110000 -gens 100
 ```
 
 [Mazectric][3] ruleset
 
 ```
-go run ./life -gene 0001000000111110000 -gens 100
+go run ./maze -gene 0001000000111110000 -gens 100
 ```
 
 I discovered this ruleset which generates a nice style of maze.
 
 ```
-go run ./life -gene 011100110001000000 -gens 150
+go run ./maze -gene 011100110001000000 -gens 150
 ```
 
 TODO: add screenshots

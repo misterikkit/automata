@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"strings"
 
-	"github.com/misterikkit/automata/life/game"
+	"github.com/misterikkit/automata/maze/game"
 )
 
 type Gene struct {

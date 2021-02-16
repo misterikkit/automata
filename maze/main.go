@@ -8,9 +8,9 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/misterikkit/automata/life/game"
-	"github.com/misterikkit/automata/life/gene"
-	"github.com/misterikkit/automata/life/tui"
+	"github.com/misterikkit/automata/maze/game"
+	"github.com/misterikkit/automata/maze/gene"
+	"github.com/misterikkit/automata/maze/tui"
 )
 
 func main() {

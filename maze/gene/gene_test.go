@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/misterikkit/automata/life/game"
+	"github.com/misterikkit/automata/maze/game"
 )
 
 func TestGene_String(t *testing.T) {

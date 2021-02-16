@@ -6,7 +6,7 @@ import (
 	tcell "github.com/gdamore/tcell/v2"
 	"github.com/pkg/errors"
 
-	"github.com/misterikkit/automata/life/game"
+	"github.com/misterikkit/automata/maze/game"
 )
 
 type Event int
