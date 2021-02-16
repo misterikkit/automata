@@ -64,6 +64,13 @@ func Random(_ Game, _, _ int) Cell {
 	return rand.Int()%2 == 0
 }
 
+// RandomSparse returns a rule that populates each cell with probability p
+func RandomSparse(p float32) Rule {
+	return func(_ Game, _, _ int) Cell {
+		return rand.Float32() < p
+	}
+}
+
 // CountNeighbors counts the alive neighbors of the cell at the given position.
 func (g Game) CountNeighbors(row, col int) int {
 	total := 0

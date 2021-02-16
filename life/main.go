@@ -33,7 +33,7 @@ func main() {
 
 	// Initialize Game
 	g := game.New(40, 100)
-	g = g.Next(game.Random)
+	g = g.Next(game.RandomSparse(0.01))
 
 	runInteractive(context.Background(), &g, gn)
 	fmt.Printf("Final state:\n%v", tui.Fmt(g))
@@ -48,7 +48,7 @@ func runInteractive(ctx context.Context, g *game.Game, gn gene.Gene) {
 	// Initialize ui, and wire events
 	pauseCh := make(chan struct{}, 1)
 	stepCh := make(chan struct{}, 1)
-	t, err := tui.New(fmt.Sprintf("Gene %v\tEsc to exit", gn), func(e tui.Event) {
+	t, err := tui.New(fmt.Sprintf("Gene %v\tEnter:play/pause\t➡:step\tEsc:exit", gn), func(e tui.Event) {
 		switch e {
 		case tui.Escape:
 			cancel()
@@ -69,7 +69,7 @@ func runInteractive(ctx context.Context, g *game.Game, gn gene.Gene) {
 	// Run the game loop
 	tick := time.NewTicker(100 * time.Millisecond)
 	defer tick.Stop()
-	paused := false
+	paused := true
 loop:
 	for {
 		select {
