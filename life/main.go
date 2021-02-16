@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"math/rand"
-	"os"
 	"time"
 
 	"github.com/misterikkit/automata/life/game"
@@ -14,11 +14,15 @@ import (
 )
 
 func main() {
-	defer fmt.Println("bye!")
+	seed := flag.Int64("seed", 0, "random seed")
+	geneStr := flag.String("gene", "", "automata gene")
+	flag.Parse()
 	// Set random seed
-	seed := time.Now().Unix()
+	if *seed == 0 {
+		*seed = time.Now().Unix()
+	}
 	defer fmt.Printf("Seed: %v\n", seed)
-	rand.Seed(seed)
+	rand.Seed(*seed)
 
 	// Create game context
 	ctx, cancel := context.WithCancel(context.Background())
@@ -26,17 +30,22 @@ func main() {
 
 	// Initialize gene
 	var gn gene.Gene
-	if len(os.Args) > 1 {
-		gn = gene.FromString(os.Args[1])
-	} else {
+	if len(*geneStr) == 0 {
 		gn = gene.Random()
+	} else {
+		gn = gene.FromString(*geneStr)
 	}
 	defer fmt.Printf("Gene: %+v\n", gn)
 	rule := gn.AsRule()
 
 	// Initialize Game
 	g := game.New(20, 30)
-	// g = g.Next(game.Random)
+	g = g.Next(game.Random)
+
+	// Things that print after the TUI closes need to be deferred before it opens
+	defer func() {
+		fmt.Printf("Final state:\n%v", tui.Fmt(g))
+	}()
 
 	// Initialize ui, and wire events
 	pauseCh := make(chan struct{}, 1)

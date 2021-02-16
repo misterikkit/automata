@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"bytes"
+
 	tcell "github.com/gdamore/tcell/v2"
 	"github.com/pkg/errors"
 
@@ -90,4 +92,37 @@ func box(s tcell.Screen, x, y, w, h int) {
 	s.SetContent(x+w, y, tcell.RuneURCorner, nil, tcell.StyleDefault)
 	s.SetContent(x+w, y+h, tcell.RuneLRCorner, nil, tcell.StyleDefault)
 	// Don't forget to Show() or Sync()
+}
+
+func Fmt(g game.Game) string {
+	var b bytes.Buffer
+	// top row
+	b.WriteRune(tcell.RuneULCorner)
+	for i := 0; i < g.Cols(); i++ {
+		b.WriteRune(tcell.RuneHLine)
+	}
+	b.WriteRune(tcell.RuneURCorner)
+	b.WriteString("\n")
+	// content
+	for r := 0; r < g.Rows(); r++ {
+		b.WriteRune(tcell.RuneVLine)
+		for c := 0; c < g.Cols(); c++ {
+			switch g.Get(r, c) {
+			case true:
+				b.WriteRune(tcell.RuneBlock)
+			case false:
+				b.WriteRune(tcell.RuneBullet)
+			}
+		}
+		b.WriteRune(tcell.RuneVLine)
+		b.WriteString("\n")
+	}
+	// bottom row
+	b.WriteRune(tcell.RuneLLCorner)
+	for i := 0; i < g.Cols(); i++ {
+		b.WriteRune(tcell.RuneHLine)
+	}
+	b.WriteRune(tcell.RuneLRCorner)
+	b.WriteString("\n")
+	return b.String()
 }
