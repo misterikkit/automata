@@ -32,7 +32,7 @@ func main() {
 	}
 
 	// Initialize Game
-	g := game.New(20, 30)
+	g := game.New(40, 100)
 	g = g.Next(game.Random)
 
 	runInteractive(context.Background(), &g, gn)
@@ -47,12 +47,15 @@ func runInteractive(ctx context.Context, g *game.Game, gn gene.Gene) {
 
 	// Initialize ui, and wire events
 	pauseCh := make(chan struct{}, 1)
+	stepCh := make(chan struct{}, 1)
 	t, err := tui.New(fmt.Sprintf("Gene %v\tEsc to exit", gn), func(e tui.Event) {
 		switch e {
 		case tui.Escape:
 			cancel()
 		case tui.Enter:
 			pauseCh <- struct{}{}
+		case tui.Right:
+			stepCh <- struct{}{}
 		}
 	})
 	if err != nil {
@@ -79,6 +82,9 @@ loop:
 
 		case <-pauseCh:
 			paused = !paused
+		case <-stepCh:
+			*g = g.Next(rule)
+			t.DrawGame(*g)
 
 		case <-ctx.Done():
 			break loop
