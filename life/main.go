@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/misterikkit/automata/life/game"
@@ -17,14 +18,19 @@ func main() {
 	rand.Seed(time.Now().Unix())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	var gn gene.Gene
+	if len(os.Args) > 1 {
+		gn = gene.FromString(os.Args[1])
+	} else {
+		gn = gene.Random()
+	}
+	defer fmt.Printf("Gene: %+v\n", gn)
+	rule := gn.AsRule()
 
 	g := game.New(20, 30)
-	gene := gene.Random()
-	rule := gene.AsRule()
-	defer fmt.Printf("Gene: %+v\n", gene)
 	// g = g.Next(game.Random)
 
-	t, err := tui.New(fmt.Sprintf("Gene %v\tEsc to exit", gene), func(e tui.Event) {
+	t, err := tui.New(fmt.Sprintf("Gene %v\tEsc to exit", gn), func(e tui.Event) {
 		if e == tui.Escape {
 			cancel()
 		}
