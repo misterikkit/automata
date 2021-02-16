@@ -43,22 +43,6 @@ type printer interface {
 	Next() error
 }
 
-// Life implements Conway's game of life.
-func Life(g Game, row, col int) Cell {
-	n := g.CountNeighbors(row, col)
-	switch g[row][col] {
-	case true:
-		if n == 2 || n == 3 {
-			return true
-		}
-	case false:
-		if n == 3 {
-			return true
-		}
-	}
-	return false
-}
-
 // Random sets cells randomly.
 func Random(_ Game, _, _ int) Cell {
 	return rand.Int()%2 == 0

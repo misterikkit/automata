@@ -19,6 +19,7 @@ func main() {
 	genCount := flag.Int("gens", 0, "if >0, run a fixed number of generations and exit")
 	life := flag.Bool("life", false, "Use game of life rules")
 	density := flag.Float64("density", 0.01, "Probability of initial cell state being alive")
+	init := flag.String("initialize", "random", "Type of initial state to use. One of (random, smallrandom)")
 
 	flag.Parse()
 	// Set random seed
@@ -40,7 +41,17 @@ func main() {
 
 	// Initialize Game
 	g := game.New(40, 100)
-	g = g.Next(game.RandomSparse(float32(*density)))
+	switch *init {
+	case "random":
+		g = g.Next(game.RandomSparse(float32(*density)))
+	case "smallrandom":
+		newG := g.Next(game.Random)
+		for i := 0; i < 10; i++ {
+			for j := 0; j < 10; j++ {
+				g[i][j] = newG[i][j]
+			}
+		}
+	}
 
 	if *genCount > 0 {
 		runAuto(&g, gn, *genCount)
