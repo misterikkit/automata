@@ -32,12 +32,13 @@ func main() {
 	g := game.New(20, 30)
 	g = g.Next(game.Random)
 
+	pauseCh := make(chan struct{}, 1)
 	t, err := tui.New(fmt.Sprintf("Gene %v\tEsc to exit", gn), func(e tui.Event) {
 		switch e {
 		case tui.Escape:
 			cancel()
 		case tui.Enter:
-			cancel()
+			pauseCh <- struct{}{}
 		}
 	})
 	if err != nil {
@@ -49,12 +50,18 @@ func main() {
 	tick := time.NewTicker(100 * time.Millisecond)
 	defer tick.Stop()
 
+	paused := false
 loop:
 	for {
 		select {
 		case <-tick.C:
+			if paused {
+				break
+			}
 			g = g.Next(rule)
 			t.DrawGame(g)
+		case <-pauseCh:
+			paused = !paused
 		case <-ctx.Done():
 			break loop
 		}
