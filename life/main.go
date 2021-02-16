@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/misterikkit/automata/life/game"
+	"github.com/misterikkit/automata/life/gene"
 	"github.com/misterikkit/automata/life/tui"
 )
 
@@ -18,7 +19,10 @@ func main() {
 	defer cancel()
 
 	g := game.New(20, 30)
-	g = g.Next(game.Random)
+	gene := gene.Random()
+	rule := gene.AsRule()
+	defer fmt.Printf("%+v\n", gene)
+	// g = g.Next(game.Random)
 
 	t, err := tui.New("Esc to exit", func(e tui.Event) {
 		if e == tui.Escape {
@@ -38,7 +42,7 @@ loop:
 	for {
 		select {
 		case <-tick.C:
-			g = g.Next(game.Life)
+			g = g.Next(rule)
 			t.DrawGame(g)
 		case <-ctx.Done():
 			break loop

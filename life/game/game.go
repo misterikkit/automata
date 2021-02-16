@@ -44,9 +44,9 @@ type printer interface {
 }
 
 // Life implements Conway's game of life.
-func Life(w Game, row, col int) Cell {
-	n := countNeighbors(w, row, col)
-	switch w[row][col] {
+func Life(g Game, row, col int) Cell {
+	n := g.CountNeighbors(row, col)
+	switch g[row][col] {
 	case true:
 		if n == 2 || n == 3 {
 			return true
@@ -64,10 +64,11 @@ func Random(_ Game, _, _ int) Cell {
 	return rand.Int()%2 == 0
 }
 
-func countNeighbors(w Game, row, col int) int {
+// CountNeighbors counts the alive neighbors of the cell at the given position.
+func (g Game) CountNeighbors(row, col int) int {
 	total := 0
 	for r := -1; r <= 1; r++ {
-		if !(row+r > 0 && row+r < w.Rows()) {
+		if !(row+r > 0 && row+r < g.Rows()) {
 			continue
 		}
 
@@ -75,11 +76,11 @@ func countNeighbors(w Game, row, col int) int {
 			if r == 0 && c == 0 {
 				continue
 			}
-			if !(col+c > 0 && col+c < w.Cols()) {
+			if !(col+c > 0 && col+c < g.Cols()) {
 				continue
 			}
 
-			if w[row+r][col+c] {
+			if g[row+r][col+c] {
 				total++
 			}
 		}
