@@ -76,7 +76,7 @@ func main() {
 		New("cell2-probe4", Probe()),
 	}
 
-	wall1 := New("wall[1,2]", Wall())
+	wall1 := New("wall1", Wall())
 
 	border := New("border", Terminator())
 
@@ -214,7 +214,7 @@ func Probe() Script {
 		case "visit":
 			cell.Send(self, e.Name, e.Arg)
 		case "backTrack":
-			// TODO
+			cell.Send(self, e.Name, e.Arg)
 		}
 	}
 }
