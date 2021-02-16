@@ -21,12 +21,7 @@ func main() {
 	if *seed == 0 {
 		*seed = time.Now().Unix()
 	}
-	defer fmt.Printf("Seed: %v\n", seed)
 	rand.Seed(*seed)
-
-	// Create game context
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	// Initialize gene
 	var gn gene.Gene
@@ -35,17 +30,20 @@ func main() {
 	} else {
 		gn = gene.FromString(*geneStr)
 	}
-	defer fmt.Printf("Gene: %+v\n", gn)
-	rule := gn.AsRule()
 
 	// Initialize Game
 	g := game.New(20, 30)
 	g = g.Next(game.Random)
 
-	// Things that print after the TUI closes need to be deferred before it opens
-	defer func() {
-		fmt.Printf("Final state:\n%v", tui.Fmt(g))
-	}()
+	runInteractive(context.Background(), &g, gn)
+	fmt.Printf("Final state:\n%v", tui.Fmt(g))
+	fmt.Printf("Gene: %+v\n", gn)
+	fmt.Printf("Seed: %v\n", seed)
+}
+
+func runInteractive(ctx context.Context, g *game.Game, gn gene.Gene) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	// Initialize ui, and wire events
 	pauseCh := make(chan struct{}, 1)
@@ -61,7 +59,9 @@ func main() {
 		log.Fatal(err)
 	}
 	defer t.Close()
-	t.DrawGame(g) // draw initial state
+	t.DrawGame(*g) // draw initial state
+
+	rule := gn.AsRule()
 
 	// Run the game loop
 	tick := time.NewTicker(100 * time.Millisecond)
@@ -74,8 +74,8 @@ loop:
 			if paused {
 				break
 			}
-			g = g.Next(rule)
-			t.DrawGame(g)
+			*g = g.Next(rule)
+			t.DrawGame(*g)
 
 		case <-pauseCh:
 			paused = !paused
