@@ -10,6 +10,7 @@ import (
 
 	"github.com/misterikkit/automata/maze/game"
 	"github.com/misterikkit/automata/maze/gene"
+	"github.com/misterikkit/automata/maze/region"
 	"github.com/misterikkit/automata/maze/tui"
 )
 
@@ -61,6 +62,10 @@ func main() {
 	fmt.Printf("Final state:\n%v", tui.Fmt(g))
 	fmt.Printf("Gene: %+v\n", gn)
 	fmt.Printf("Seed: %v\n", seed)
+
+	fmt.Println("Mapping...")
+	mapped := region.Map(g)
+	fmt.Printf("%v\n", mapped)
 }
 
 func runAuto(g *game.Game, gn gene.Gene, n int) {
