@@ -21,10 +21,10 @@ func main() {
 	g := game.New(20, 30)
 	gene := gene.Random()
 	rule := gene.AsRule()
-	defer fmt.Printf("%+v\n", gene)
+	defer fmt.Printf("Gene: %+v\n", gene)
 	// g = g.Next(game.Random)
 
-	t, err := tui.New("Esc to exit", func(e tui.Event) {
+	t, err := tui.New(fmt.Sprintf("Gene %v\tEsc to exit", gene), func(e tui.Event) {
 		if e == tui.Escape {
 			cancel()
 		}
