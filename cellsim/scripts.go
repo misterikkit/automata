@@ -157,7 +157,7 @@ func Probe() Script {
 
 // Wall represents a barrier between cells. It passes messages between two cells
 // via their Probes, and is also the primary output of the algorithm!
-func Wall() Script {
+func Wall(onOpen func()) Script {
 	// wired
 	var (
 		probe1 *Object
@@ -170,7 +170,7 @@ func Wall() Script {
 			probe1 = w["probe1"]
 			probe2 = w["probe2"]
 		case "visit":
-			// TODO: Open wall!
+			onOpen()
 			fallthrough // just to avoid copy-pasta
 		case "check":
 			// Pass message through to the probe that did not send it.

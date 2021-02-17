@@ -50,7 +50,7 @@ func (o *Object) Run(ctx context.Context) {
 	for {
 		select {
 		case e := <-o.events:
-			log.Printf("%-14v %-14q -> %-14v (%v)", e.caller, e.Name, o, e.Arg)
+			log.Printf("%-20v %-14q -> %-20v (%v)", e.caller, e.Name, o, e.Arg)
 			o.script(e, o)
 		case <-ctx.Done():
 			return
