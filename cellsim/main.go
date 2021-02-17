@@ -44,6 +44,7 @@ func main() {
 	c2Probes[3].Wire(wiring{"cell": cell2, "next": c2Probes[0], "wall": border})
 
 	wall1.Wire(wiring{"probe1": c1Probes[0], "probe2": c2Probes[0]})
+	// TODO: wire up a more complex system, and visualize the output
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
