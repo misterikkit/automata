@@ -110,7 +110,7 @@ func (m *Maze) String() string {
 				b.WriteString(" ")
 			}
 		}
-		b.WriteString("\n")
+		b.WriteString("┼\n")
 		for c, partial := range row {
 			if c == 0 || !partial.openW {
 				b.WriteString("│ ")
@@ -118,8 +118,13 @@ func (m *Maze) String() string {
 				b.WriteString("  ")
 			}
 		}
-		b.WriteString("\n")
+		b.WriteString("│\n")
+
 	}
+	for range m.cells[0] {
+		b.WriteString("┼─")
+	}
+	b.WriteString("┼\n")
 	return b.String()
 }
 

@@ -11,7 +11,7 @@ import (
 func main() {
 	rand.Seed(time.Now().Unix())
 
-	m := NewMaze(1, 2)
+	m := NewMaze(5, 5)
 	// fmt.Print(m)
 
 	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
