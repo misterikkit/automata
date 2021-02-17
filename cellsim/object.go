@@ -7,6 +7,9 @@ import (
 	"sync"
 )
 
+// Icky global is a quick hack to block until all objects are wired.
+var wireWG sync.WaitGroup
+
 // Event mimics the data in a Horizon event
 type Event struct {
 	caller *Object // for logging
@@ -43,13 +46,16 @@ type wiring = map[string]*Object
 // Wire is a shortcut for populating object relationships that would otherwise
 // be wired or captured by triggers in Horizon. It works by sending a special
 // event which must be interpreted by the script.
-func (o *Object) Wire(m wiring) { o.Send(o, "_wire", m) }
+func (o *Object) Wire(m wiring) { wireWG.Add(1); o.Send(o, "_wire", m) }
 
 // Run is an event loop for each object to process events.
 func (o *Object) Run(ctx context.Context) {
 	for {
 		select {
 		case e := <-o.events:
+			if e.Name == "_wire" {
+				wireWG.Done()
+			}
 			log.Printf("%-20v %-14q -> %-20v (%v)", e.caller, e.Name, o, e.Arg)
 			o.script(e, o)
 		case <-ctx.Done():

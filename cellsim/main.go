@@ -30,8 +30,11 @@ func main() {
 
 	log.Printf("%-20v %-14q -> %-20v (%v)", "sender", "event", "recipient", "param")
 
-	// make sure all _wire events are done
-	time.AfterFunc(500*time.Millisecond, func() { m.cells[0][0].cell.Send(init, "visit", init) })
+	// make sure all _wire events are done before starting the random walk
+	go func() {
+		wireWG.Wait()
+		m.cells[0][0].cell.Send(init, "visit", init)
+	}()
 	// start the engine
 	start := time.Now()
 	count := m.Run(ctx, init)
