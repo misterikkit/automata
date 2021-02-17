@@ -82,7 +82,7 @@ func NewMaze(rows, cols int) *Maze {
 	return m
 }
 
-func (m *Maze) Run(ctx context.Context, extra ...*Object) {
+func (m *Maze) Run(ctx context.Context, extra ...*Object) int {
 	objs := append(extra, m.border)
 	for _, row := range m.cells {
 		for _, partial := range row {
@@ -98,6 +98,7 @@ func (m *Maze) Run(ctx context.Context, extra ...*Object) {
 		}
 	}
 	RunAll(ctx, objs...)
+	return len(objs)
 }
 
 func (m *Maze) String() string {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"time"
@@ -12,7 +13,11 @@ import (
 func main() {
 	h := flag.Int("h", 5, "height")
 	w := flag.Int("w", 5, "width")
+	verbose := flag.Bool("v", false, "enable logging")
 	flag.Parse()
+	if !*verbose {
+		log.SetOutput(io.Discard) // io.Discard is new in go1.16
+	}
 	rand.Seed(time.Now().Unix())
 
 	m := NewMaze(*h, *w)
@@ -28,7 +33,11 @@ func main() {
 	// make sure all _wire events are done
 	time.AfterFunc(500*time.Millisecond, func() { m.cells[0][0].cell.Send(init, "visit", init) })
 	// start the engine
-	m.Run(ctx, init)
+	start := time.Now()
+	count := m.Run(ctx, init)
+	end := time.Now()
 
-	fmt.Printf("Final state:\n%v\n", m)
+	fmt.Printf("Generated %dx%d maze in %v\n", *h, *w, end.Sub(start))
+	fmt.Println(m)
+	fmt.Printf("And it only took %d threads!\n", count)
 }
