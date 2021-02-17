@@ -1,6 +1,6 @@
 # Random walk maze generator
 
-Implemented as a simulation of Horizon object/script behaviors.
+Implemented as a simulation of Horizon object/script behaviors. See [scripts.go](scripts.go) for a wiring diagram.
 
 Sample output:
 
