@@ -24,7 +24,8 @@ type CellPartial struct {
 }
 
 type Maze struct {
-	cells [][]CellPartial
+	cells  [][]CellPartial
+	border *Object
 }
 
 func NewMaze(rows, cols int) *Maze {
@@ -49,14 +50,14 @@ func NewMaze(rows, cols int) *Maze {
 		}
 	}
 	// Time to wire them up!
-	border := New("border", Terminator())
+	m.border = New("border", Terminator())
 
 	for r := range m.cells {
 		for c := range m.cells[r] {
 			partial := m.cells[r][c]
 			partial.cell.Wire(wiring{"probe": partial.probeN})
 			// Determine whether to use real wall, or border sentinel.
-			wallN, wallE, wallS, wallW := border, border, border, border
+			wallN, wallE, wallS, wallW := m.border, m.border, m.border, m.border
 			if r > 0 {
 				partial.wallN.Wire(wiring{"probe1": partial.probeN, "probe2": m.cells[r-1][c].probeS})
 				wallN = partial.wallN
@@ -80,8 +81,8 @@ func NewMaze(rows, cols int) *Maze {
 	return m
 }
 
-func (m *Maze) Run(ctx context.Context) {
-	var objs []*Object
+func (m *Maze) Run(ctx context.Context, extra ...*Object) {
+	objs := append(extra, m.border)
 	for _, row := range m.cells {
 		for _, partial := range row {
 			objs = append(objs,

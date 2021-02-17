@@ -24,7 +24,7 @@ func main() {
 	// make sure all _wire events are done
 	time.AfterFunc(500*time.Millisecond, func() { m.cells[0][0].cell.Send(init, "visit", init) })
 	// start the engine
-	m.Run(ctx)
+	m.Run(ctx, init)
 
 	fmt.Printf("Final state:\n%v\n", m)
 }
