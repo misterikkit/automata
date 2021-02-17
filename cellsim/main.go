@@ -42,5 +42,5 @@ func main() {
 
 	fmt.Printf("Generated %dx%d maze in %v\n", *h, *w, end.Sub(start))
 	fmt.Println(m)
-	fmt.Printf("And it only took %d threads!\n", count)
+	fmt.Printf("And it only took %d goroutines!\n", count)
 }
