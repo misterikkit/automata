@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"math/rand"
@@ -9,9 +10,12 @@ import (
 )
 
 func main() {
+	h := flag.Int("h", 5, "height")
+	w := flag.Int("w", 5, "width")
+	flag.Parse()
 	rand.Seed(time.Now().Unix())
 
-	m := NewMaze(5, 5)
+	m := NewMaze(*h, *w)
 	// fmt.Print(m)
 
 	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
