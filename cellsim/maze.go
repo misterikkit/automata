@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 )
 
 type CellGroup struct {
@@ -43,10 +42,12 @@ func NewMaze(rows, cols int) *Maze {
 				probeE: New(fmt.Sprintf("%s-probe-E", name), Probe()),
 				probeS: New(fmt.Sprintf("%s-probe-S", name), Probe()),
 				probeW: New(fmt.Sprintf("%s-probe-W", name), Probe()),
-				// Did I capture r and c correctly in these closures?
-				wallN: New(fmt.Sprintf("%s-wall-N", name), Wall(func() { m.cells[r][c].openN = true; log.Printf("Open wall N of (%d, %d)", r, c) })),
-				wallW: New(fmt.Sprintf("%s-wall-W", name), Wall(func() { m.cells[r][c].openW = true; log.Printf("Open wall W of (%d, %d)", r, c) })),
 			}
+			// Capture bool address in local var for the closure
+			openN := &m.cells[r][c].openN
+			openW := &m.cells[r][c].openW
+			m.cells[r][c].wallN = New(fmt.Sprintf("%s-wall-N", name), Wall(func() { *openN = true }))
+			m.cells[r][c].wallW = New(fmt.Sprintf("%s-wall-W", name), Wall(func() { *openW = true }))
 		}
 	}
 	// Time to wire them up!
