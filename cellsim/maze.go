@@ -102,16 +102,19 @@ func (m *Maze) Run(ctx context.Context, extra ...*Object) {
 
 func (m *Maze) String() string {
 	var b bytes.Buffer
+	// Each partial has two rows of text: north walls and east-west walls
 	for r, row := range m.cells {
-		for _, partial := range row {
-			b.WriteString("┼")
+		for c, partial := range row {
+			b.WriteString(m.cornerNW(r, c))
 			if r == 0 || !partial.openN {
 				b.WriteString("─")
 			} else {
 				b.WriteString(" ")
 			}
 		}
-		b.WriteString("┼\n")
+		// Eastern corner at end of row
+		b.WriteString(m.cornerNW(r, len(row)))
+		b.WriteString("\n")
 		for c, partial := range row {
 			if c == 0 || !partial.openW {
 				b.WriteString("│ ")
@@ -122,12 +125,96 @@ func (m *Maze) String() string {
 		b.WriteString("│\n")
 
 	}
-	for range m.cells[0] {
-		b.WriteString("┼─")
+	for c := range m.cells[0] {
+		b.WriteString(m.cornerNW(len(m.cells), c))
+		b.WriteString("─")
 	}
-	b.WriteString("┼\n")
+	b.WriteString(m.cornerNW(len(m.cells), len(m.cells[0])))
+	b.WriteString("\n")
 	return b.String()
 }
+
+// Returns an appropriate symbol for the northwest corner of the given partial
+func (m *Maze) cornerNW(row, col int) string {
+	const n, e, s, w = 1, 2, 4, 8
+	var mask int
+	rows, cols := len(m.cells), len(m.cells[0])
+	valid := func(r, c int) bool { return r >= 0 && r < rows && c >= 0 && c < cols }
+	if valid(row, col) && !m.cells[row][col].openN {
+		mask |= e
+	}
+	if valid(row, col) && !m.cells[row][col].openW {
+		mask |= s
+	}
+	if r := row - 1; valid(r, col) && !m.cells[r][col].openW {
+		mask |= n
+	}
+	if c := col - 1; valid(row, c) && !m.cells[row][c].openN {
+		mask |= w
+	}
+	// Special case "always closed" border walls on south & east
+	if col >= cols {
+		if row > 0 {
+			mask |= n
+		}
+		if row < rows {
+			mask |= s
+		}
+	}
+	if row >= rows {
+		if col > 0 {
+			mask |= w
+		}
+		if col < cols {
+			mask |= e
+		}
+	}
+	switch mask {
+	case w:
+		return "╴"
+	case s:
+		return "╵"
+	case e:
+		return "╶"
+	case n:
+		return "╷"
+	case e | w:
+		return "─"
+	case n | s:
+		return "│"
+	case e | s:
+		return "┌"
+	case w | s:
+		return "┐"
+	case n | e:
+		return "└"
+	case n | w:
+		return "┘"
+	case n | e | s:
+		return "├"
+	case n | s | w:
+		return "┤"
+	case e | s | w:
+		return "┬"
+	case n | e | w:
+		return "┴"
+	case n | e | s | w:
+		return "┼"
+	}
+	return "•"
+}
+
+// ─
+// │
+// ┌
+// ┐
+// └
+// ┘
+// ├
+// ┤
+// ┬
+// ┴
+// ┼
 
 // +-+-+-+-+
 // |.|.|.|.|
