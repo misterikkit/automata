@@ -21,6 +21,8 @@ func main() {
 	life := flag.Bool("life", false, "Use game of life rules")
 	density := flag.Float64("density", 0.01, "Probability of initial cell state being alive")
 	init := flag.String("initialize", "random", "Type of initial state to use. One of (random, smallrandom)")
+	h := flag.Int("h", 40, "height")
+	w := flag.Int("w", 100, "width")
 
 	flag.Parse()
 	// Set random seed
@@ -41,7 +43,7 @@ func main() {
 	}
 
 	// Initialize Game
-	g := game.New(40, 100)
+	g := game.New(*h, *w)
 	switch *init {
 	case "random":
 		g = g.Next(game.RandomSparse(float32(*density)))
@@ -49,7 +51,7 @@ func main() {
 		newG := g.Next(game.Random)
 		for i := 0; i < 10; i++ {
 			for j := 0; j < 10; j++ {
-				g[i][j] = newG[i][j]
+				g[i+*h/2][j+*w/2] = newG[i][j]
 			}
 		}
 	}
