@@ -75,3 +75,7 @@ func Random() Gene {
 	}
 	return g
 }
+
+func Clone() game.Rule {
+	return func(g game.Game, row, col int) game.Cell { return g.Get(row, col) }
+}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/misterikkit/automata/maze/game"
@@ -23,6 +24,7 @@ func main() {
 	init := flag.String("initialize", "random", "Type of initial state to use. One of (random, smallrandom)")
 	h := flag.Int("h", 40, "height")
 	w := flag.Int("w", 100, "width")
+	merge := flag.String("merge", "", "specify a comma-separated list of genes to run them separately and take the intersection of their states")
 
 	flag.Parse()
 	// Set random seed
@@ -56,16 +58,40 @@ func main() {
 		}
 	}
 
-	if *genCount > 0 {
-		runAuto(&g, gn, *genCount)
+	if len(*merge) == 0 {
+		if *genCount > 0 {
+			runAuto(&g, gn, *genCount)
+		} else {
+			runInteractive(context.Background(), &g, gn)
+		}
 	} else {
-		runInteractive(context.Background(), &g, gn)
+		fmt.Printf("Combining genes %s\n", *merge)
+		final := game.New(*h, *w).Next(game.RandomSparse(2)) // 100% alive
+		base := g.Next(gene.Clone())
+		geneStrs := strings.Split(*merge, ",")
+		for _, geneStr := range geneStrs {
+			gn = gene.FromString(geneStr)
+			g = base.Next(gene.Clone())
+			runAuto(&g, gn, *genCount)
+
+			mapped := region.Map(g)
+			fmt.Printf("Intermediate result\n%v", tui.Fmt(mapped))
+
+			final = final.Next(func(_ game.Game, row, col int) game.Cell {
+				return final.Get(row, col) && g.Get(row, col)
+			})
+			mapped = region.Map(final)
+			fmt.Printf("Intermediate merge\n%v", tui.Fmt(mapped))
+		}
+		g = final
 	}
-	// fmt.Printf("Final state:\n%v", tui.Fmt(g))
-	fmt.Printf("Gene: %+v\n", gn)
+
+	if len(*merge) == 0 {
+		fmt.Printf("Gene: %+v\n", gn)
+	}
 	fmt.Printf("Seed: %v\n", seed)
 
-	fmt.Println("Mapping...")
+	// fmt.Println("Mapping...")
 	mapped := region.Map(g)
 	// fmt.Printf("%v\n", mapped)
 	fmt.Printf("Final state:\n%v", tui.Fmt(mapped))
