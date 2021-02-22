@@ -7,11 +7,12 @@ import (
 // Object represents a Horizon object, which can have a script attached or be
 // referenced from other scripts.
 type Object interface {
+	// Send an event to another object.
 	Send(dst Object, eventName string, param interface{})
-	// Set the object references for this object.
+	// Set the object references for this object. (Overwrites previous calls)
 	Wire(Wiring)
-	// Return the wired object
-	Get(name string) (Object, bool)
+	// Return the object's wires
+	Wires() Wiring
 	// TODO: add listen and connect
 }
 
@@ -48,11 +49,8 @@ func (o *object) Send(dst Object, eventName string, param interface{}) {
 	}
 }
 
-// Set the object references for this object.
 func (o *object) Wire(w Wiring) { o.wires = w }
-
-// Return the wired object. Returns false if object is not found.
-func (o *object) Get(name string) (Object, bool) { v, ok := o.wires[name]; return v, ok }
+func (o *object) Wires() Wiring { return o.wires }
 
 // String returns the id of an object.
 func (o *object) String() string { return fmt.Sprintf("{%s}", o.id) }

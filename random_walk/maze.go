@@ -4,31 +4,34 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+
+	"github.com/misterikkit/automata/horizon"
 )
 
 type CellGroup struct {
-	cell                     *Object
-	north, south, east, west *Object // probes
+	cell                     horizon.Object
+	north, south, east, west horizon.Object // probes
 }
 
 // CellPartial contains a cell, it's probes, and two walls (north & west) such
 // that CellPartials can be tiled to create a maze. Southmost and Eastmost walls
 // must be treated separately.
 type CellPartial struct {
-	cell                           *Object
-	probeN, probeE, probeS, probeW *Object
-	wallN, wallW                   *Object
+	cell                           horizon.Object
+	probeN, probeE, probeS, probeW horizon.Object
+	wallN, wallW                   horizon.Object
 	openN, openW                   bool // whether those walls are open
 	// TODO: corner?
 }
 
 type Maze struct {
+	el     horizon.EventLoop
 	cells  [][]CellPartial
-	border *Object
+	border horizon.Object
 }
 
 func NewMaze(rows, cols int) *Maze {
-	m := &Maze{}
+	m := &Maze{el: horizon.NewEventLoop()}
 	m.cells = make([][]CellPartial, rows)
 	for i := range m.cells {
 		m.cells[i] = make([]CellPartial, cols)
@@ -37,34 +40,34 @@ func NewMaze(rows, cols int) *Maze {
 		for c := range m.cells[r] {
 			name := fmt.Sprintf("cell[%d,%d]", r, c)
 			m.cells[r][c] = CellPartial{
-				cell:   New(name, Cell()),
-				probeN: New(fmt.Sprintf("%s-probe-N", name), Probe()),
-				probeE: New(fmt.Sprintf("%s-probe-E", name), Probe()),
-				probeS: New(fmt.Sprintf("%s-probe-S", name), Probe()),
-				probeW: New(fmt.Sprintf("%s-probe-W", name), Probe()),
+				cell:   horizon.NewObject(name, Cell(), m.el),
+				probeN: horizon.NewObject(fmt.Sprintf("%s-probe-N", name), Probe(), m.el),
+				probeE: horizon.NewObject(fmt.Sprintf("%s-probe-E", name), Probe(), m.el),
+				probeS: horizon.NewObject(fmt.Sprintf("%s-probe-S", name), Probe(), m.el),
+				probeW: horizon.NewObject(fmt.Sprintf("%s-probe-W", name), Probe(), m.el),
 			}
 			// Capture bool address in local var for the closure
 			openN := &m.cells[r][c].openN
 			openW := &m.cells[r][c].openW
-			m.cells[r][c].wallN = New(fmt.Sprintf("%s-wall-N", name), Wall(func() { *openN = true }))
-			m.cells[r][c].wallW = New(fmt.Sprintf("%s-wall-W", name), Wall(func() { *openW = true }))
+			m.cells[r][c].wallN = horizon.NewObject(fmt.Sprintf("%s-wall-N", name), Wall(func() { *openN = true }), m.el)
+			m.cells[r][c].wallW = horizon.NewObject(fmt.Sprintf("%s-wall-W", name), Wall(func() { *openW = true }), m.el)
 		}
 	}
 	// Time to wire them up!
-	m.border = New("border", Terminator())
+	m.border = horizon.NewObject("border", Terminator(), m.el)
 
 	for r := range m.cells {
 		for c := range m.cells[r] {
 			partial := m.cells[r][c]
-			partial.cell.Wire(wiring{"probe": partial.probeN})
+			partial.cell.Wire(horizon.Wiring{"probe": partial.probeN})
 			// Determine whether to use real wall, or border sentinel.
 			wallN, wallE, wallS, wallW := m.border, m.border, m.border, m.border
 			if r > 0 {
-				partial.wallN.Wire(wiring{"probe1": partial.probeN, "probe2": m.cells[r-1][c].probeS})
+				partial.wallN.Wire(horizon.Wiring{"probe1": partial.probeN, "probe2": m.cells[r-1][c].probeS})
 				wallN = partial.wallN
 			}
 			if c > 0 {
-				partial.wallW.Wire(wiring{"probe1": partial.probeW, "probe2": m.cells[r][c-1].probeE})
+				partial.wallW.Wire(horizon.Wiring{"probe1": partial.probeW, "probe2": m.cells[r][c-1].probeE})
 				wallW = partial.wallW
 			}
 			if r+1 < len(m.cells) {
@@ -73,32 +76,22 @@ func NewMaze(rows, cols int) *Maze {
 			if c+1 < len(m.cells[r]) {
 				wallE = m.cells[r][c+1].wallW
 			}
-			partial.probeN.Wire(wiring{"cell": partial.cell, "next": partial.probeE, "wall": wallN})
-			partial.probeE.Wire(wiring{"cell": partial.cell, "next": partial.probeS, "wall": wallE})
-			partial.probeS.Wire(wiring{"cell": partial.cell, "next": partial.probeW, "wall": wallS})
-			partial.probeW.Wire(wiring{"cell": partial.cell, "next": partial.probeN, "wall": wallW})
+			partial.probeN.Wire(horizon.Wiring{"cell": partial.cell, "next": partial.probeE, "wall": wallN})
+			partial.probeE.Wire(horizon.Wiring{"cell": partial.cell, "next": partial.probeS, "wall": wallE})
+			partial.probeS.Wire(horizon.Wiring{"cell": partial.cell, "next": partial.probeW, "wall": wallS})
+			partial.probeW.Wire(horizon.Wiring{"cell": partial.cell, "next": partial.probeN, "wall": wallW})
 		}
 	}
 	return m
 }
 
-func (m *Maze) Run(ctx context.Context, extra ...*Object) int {
-	objs := append(extra, m.border)
-	for _, row := range m.cells {
-		for _, partial := range row {
-			objs = append(objs,
-				partial.cell,
-				partial.probeN,
-				partial.probeE,
-				partial.probeS,
-				partial.probeW,
-				partial.wallN,
-				partial.wallW,
-			)
-		}
-	}
-	RunAll(ctx, objs...)
-	return len(objs)
+// Run runs the maze generation algorithm, returning upon completion.
+func (m *Maze) Run(ctx context.Context) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	init := horizon.NewObject("init", func(horizon.Object, horizon.Event) { cancel() }, m.el)
+	init.Send(m.cells[0][0].cell, "visit", init)
+	m.el.Run(ctx)
 }
 
 func (m *Maze) String() string {
