@@ -56,6 +56,14 @@ func (m *Maze) Open(row, col int, d Direction) {
 	m.cells[nextRow][nextCol].openings |= nextDirection
 }
 
+// Set sets a one-rune value to print in the cell.
+func (m *Maze) Set(row, col int, val string) {
+	if !m.valid(row, col) {
+		return
+	}
+	m.cells[row][col].value = val
+}
+
 func (m *Maze) valid(row, col int) bool {
 	return row >= 0 && row < len(m.cells) && col >= 0 && col < len(m.cells[row])
 }
@@ -63,6 +71,8 @@ func (m *Maze) valid(row, col int) bool {
 type cell struct {
 	// A bitmask of which walls are open
 	openings Direction
+	// optional display value
+	value string
 }
 
 func (m *Maze) String() string {
@@ -78,10 +88,15 @@ func (m *Maze) String() string {
 		// cell row
 		b.WriteString(segment(North | South))
 		for _, cell := range row {
-			if cell.openings&East > 0 {
-				b.WriteString("  ")
+			if len(cell.value) == 1 {
+				b.WriteString(cell.value)
 			} else {
-				b.WriteString(" " + segment(North|South))
+				b.WriteString(" ")
+			}
+			if cell.openings&East > 0 {
+				b.WriteString(" ")
+			} else {
+				b.WriteString("" + segment(North|South))
 			}
 		}
 		b.WriteString("\n")
