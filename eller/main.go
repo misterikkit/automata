@@ -9,6 +9,9 @@ import (
 	"github.com/misterikkit/automata/wall"
 )
 
+// Props to [1] for helping me understand Eller's algorithm!
+// [1]: https://weblog.jamisbuck.org/2010/12/29/maze-generation-eller-s-algorithm
+
 // state represents one row of the maze, which is all that the Eller algorithm
 // needs in memory at any time.
 type state struct {
@@ -41,7 +44,8 @@ func (s *state) compute(lastRow bool) {
 		if s.groupIDs[i] == s.groupIDs[i+1] {
 			continue
 		}
-		// On the last row, we connect all isloated subsections of the maze.
+		// Buck used 50% chance of joining adjacent, nonmatching neighbors.
+		// On the last row, we connect all isolated subsections of the maze.
 		if lastRow || p(0.5) {
 			// log.Printf("Merge %v and %v", i, i+1)
 			s.openEast[i] = true
@@ -52,6 +56,8 @@ func (s *state) compute(lastRow bool) {
 		return
 	}
 	for _, group := range s.groups {
+		// Buck chose a uniformly random number of cells from each set to propagate
+		// down, with minimum 1 and maximum all.
 		propagate := 1 + rand.Intn(len(group))
 		rand.Shuffle(len(group), func(i, j int) { group[i], group[j] = group[j], group[i] })
 		for _, pos := range group[:propagate] {
