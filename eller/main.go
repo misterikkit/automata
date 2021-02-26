@@ -29,39 +29,39 @@ func buildEllerMaze(rows, cols int) *wall.Maze {
 	maze := wall.NewMaze(rows, cols)
 
 	state := newState(cols)
-	prev := state
+	state.nextRow()
 	log.Printf("init: %v", state)
 
 	for r := 0; r < rows; r++ {
 		lastRow := r == rows-1
-		state = joinHorizontal(state, lastRow)
-		log.Printf("row:  %v", state)
-		maze.Set(r, 0, state.cells[0].String())
-		for c := 1; c < cols; c++ {
-			maze.Set(r, c, state.cells[c].String())
-			// Only open walls if cells are newly joined
-			if state.cells[c] == state.cells[c-1] && prev.cells[c] != prev.cells[c-1] {
-				maze.Open(r, c, wall.West)
+		state.goRight(lastRow)
+		for c := 0; c < cols; c++ {
+			maze.Set(r, c, fmt.Sprint(state.cells[c]))
+			if state.eastOpen[c] {
+				maze.Open(r, c, wall.East)
 			}
 		}
+		log.Printf("right: %v", state)
 		if lastRow {
 			break
 		}
-		next := joinVertical(state)
-		log.Printf("col:  %v", state)
+		state.goDown()
 		for c := 0; c < cols; c++ {
-			if state.cells[c] == next.cells[c] {
+			if state.southOpen[c] {
 				maze.Open(r, c, wall.South)
 			}
 		}
-		prev, state = state, next
+		log.Printf("right: %v", state)
+		state.nextRow()
 	}
+
 	return maze
 }
 
 type ellerState struct {
 	// Set id of each cell
-	cells []setID
+	cells               []setID
+	eastOpen, southOpen []bool
 	// map of set id to list of cell indexes
 	sets map[setID]set
 }
@@ -71,16 +71,94 @@ type setID int
 
 type set map[cellPos]struct{}
 
+// Return n keys from the set, uniformly random
+func (s set) rand(n int) []cellPos {
+	ret := make([]cellPos, 0, len(s))
+	for k := range s {
+		ret = append(ret, k)
+	}
+	rand.Shuffle(len(ret), func(i, j int) { ret[i], ret[j] = ret[j], ret[i] })
+	return ret[:n]
+}
+
 func newState(cols int) ellerState {
 	state := ellerState{
-		cells: make([]setID, cols),
-		sets:  make(map[setID]set),
+		cells:     make([]setID, cols),
+		eastOpen:  make([]bool, cols),
+		southOpen: make([]bool, cols),
+		sets:      make(map[setID]set),
 	}
 	for i := range state.cells {
-		state.cells[i] = setID(i)
-		state.sets[setID(i)] = set{cellPos(i): struct{}{}}
+		state.cells[i] = -1
+		// state.sets[setID(i)] = set{cellPos(i): struct{}{}}
 	}
 	return state
+}
+
+func (s *ellerState) goRight(all bool) {
+	for i := 0; i < len(s.cells)-1; i++ {
+		if s.cells[i] == s.cells[i+1] {
+			continue
+		}
+		if all || rand.Intn(2) == 0 {
+			log.Printf("Joining %v and %v", i, i+1)
+			new, old := s.cells[i], s.cells[i+1]
+			// s.set(cellPos(i+1), s.cells[i])
+			for pos := range s.sets[old] {
+				s.set(pos, new)
+			}
+			s.eastOpen[i] = true
+		}
+	}
+}
+
+func (s *ellerState) goDown() {
+	for _, set := range s.sets {
+		propagate := 1
+		if len(set) > 1 {
+			propagate = 1 + rand.Intn(len(set)-1)
+		}
+		for _, pos := range set.rand(propagate) {
+			log.Printf("Propagating %v", pos)
+			s.southOpen[pos] = true
+		}
+	}
+	for i := range s.cells {
+		if !s.southOpen[i] {
+			s.cells[i] = -1
+		}
+	}
+}
+
+func (s *ellerState) nextRow() {
+	nextID := max(s.cells) + 1
+	for i := range s.cells {
+		if s.cells[i] != -1 {
+			continue
+		}
+		s.set(cellPos(i), nextID)
+		nextID++
+	}
+	for i := range s.eastOpen {
+		s.eastOpen[i] = false
+		s.southOpen[i] = false
+	}
+}
+
+// set a cell to be in a set, and update internal state accordingly
+func (s *ellerState) set(p cellPos, i setID) {
+	old := s.cells[p]
+	s.cells[p] = i
+	if s.sets[i] == nil {
+		s.sets[i] = make(set)
+	}
+	s.sets[i][p] = struct{}{}
+	if oldSet, ok := s.sets[old]; ok {
+		delete(oldSet, p) // oldSet can't be empty because we will delete it if so
+		if len(oldSet) == 0 {
+			delete(s.sets, old)
+		}
+	}
 }
 
 // Return a state where adjacent sets are randomly merged
@@ -93,54 +171,51 @@ func joinHorizontal(state ellerState, all bool) ellerState {
 		// Buck used 50% chance of joining adjacent, nonmatching neighbors
 		if all || rand.Int()%2 == 0 {
 			log.Printf("Joining cols %d and %d", i, i+1)
-			// Flood fill to the right with the set ID from the left
-			new, old := next.cells[i], next.cells[i+1]
-			for j := i + 1; j < len(next.cells) && next.cells[j] == old; j++ {
-				next.cells[j] = new
-				next.sets[new][cellPos(j)] = struct{}{}
-				delete(next.sets[old], cellPos(j))
-			}
-			// Remove empty sets
-			if len(next.sets[old]) == 0 {
-				delete(next.sets, old)
-			}
+			next.eastOpen[i] = true
+			next.set(cellPos(i+1), next.cells[i])
+			// new, old := next.cells[i], next.cells[i+1]
+			// next.cells[i+1] = new
+			// next.sets[new][cellPos(i+1)] = struct{}{}
+			// delete(next.sets[old], cellPos(i+1))
+			// if len(next.sets[old]) == 0 {
+			// 	delete(next.sets, old)
+			// }
 		}
 	}
 	return next
 }
 
 func joinVertical(state ellerState) ellerState {
-	// Each row can add at most N-1 new set IDs, so any set ID + N is available for
-	// the next row.
-	nextID := max(state.cells) + setID(len(state.cells))
+	nextID := max(state.cells) + 1
 	// Start with a copy, which effectively propagates everything, then pare it back.
-	next := state.Copy()
+	next := newState(len(state.cells))
+	// Pick at least one cell from each set to propagate down.
 	for id, cells := range state.sets {
 
 		// Copy the set into a slice for uniform shuffling (don't rely on golang arbitrary order)
-		var dontPropagate []cellPos
+		var cellList []cellPos
 		for cell := range cells {
-			dontPropagate = append(dontPropagate, cell)
+			cellList = append(cellList, cell)
 		}
-		rand.Shuffle(len(dontPropagate), func(i, j int) {
-			dontPropagate[i], dontPropagate[j] = dontPropagate[j], dontPropagate[i]
+		rand.Shuffle(len(cellList), func(i, j int) {
+			cellList[i], cellList[j] = cellList[j], cellList[i]
 		})
 		// Buck chose a uniformly random number of cells from each set to propagate
 		// down, with minimum 1 and maximum all.
-		// We want to keep at least 1, so we will "un-keep" at most n-1
-		dropN := 0
-		if len(dontPropagate) > 1 {
-			dropN = rand.Intn(len(dontPropagate))
+		keep := 1
+		if len(cellList) > 1 {
+			keep = rand.Intn(len(cellList)-1) + 1
 		}
-		dontPropagate = dontPropagate[:dropN]
-		for _, drop := range dontPropagate {
-			log.Printf("Not propagating col %d", drop)
+		cellList = cellList[:keep]
+		for _, froob := range cellList {
+			log.Printf("Propagating col %d", froob)
 			// brand new set ID in position drop
-			next.cells[drop] = nextID
+			next.cells[froob] = state.cells[froob]
+			next.sets[state.cells[froob]][froob] = struct{}{}
 			// add drop to the new set
-			next.sets[nextID] = set{drop: struct{}{}}
+			next.sets[nextID] = set{froob: struct{}{}}
 			// remove drop from the old set
-			delete(next.sets[id], drop)
+			delete(next.sets[id], froob)
 			nextID++
 		}
 	}
@@ -148,11 +223,11 @@ func joinVertical(state ellerState) ellerState {
 }
 
 func (e ellerState) Copy() ellerState {
-	other := ellerState{
-		cells: make([]setID, len(e.cells)),
-		sets:  make(map[setID]set),
-	}
+	other := newState(len(e.cells))
 	copy(other.cells, e.cells)
+	copy(other.eastOpen, e.eastOpen)
+	copy(other.southOpen, e.southOpen)
+	// other.sets = make(map[setID]set)
 	for k, v := range e.sets {
 		other.sets[k] = make(set)
 		for c := range v {
