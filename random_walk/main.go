@@ -20,6 +20,7 @@ func main() {
 	}
 	rand.Seed(time.Now().Unix())
 
+	// TODO: switch to wall.NewMaze
 	m := NewMaze(*h, *w)
 
 	log.Printf("%-20v %-14q -> %-20v (%v)", "sender", "event", "recipient", "param")

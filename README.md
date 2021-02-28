@@ -4,6 +4,8 @@ Inspired by [this paper][1] I wrote a set of experiments using cellular
 automata to generate mazes. Before I got as far as writing a fitness function,
 I found some [useful "genes"][2] on Wikipedia.
 
+Note: This repo has pretty much abandoned cellular based approaches.
+
 ## Try it out
 
 To view an interactive simulation with a random ruleset, run
