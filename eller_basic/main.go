@@ -85,7 +85,7 @@ func (s *state) replace(old, new int) {
 func (s *state) nextRow() {
 	for i := range s.groupIDs {
 		if !s.openSouth[i] {
-			s.removeOne(i, s.groupIDs[i])
+			s.removeOne(i)
 		}
 		s.openEast[i] = false
 		s.openSouth[i] = false
@@ -104,7 +104,8 @@ func (s *state) nextRow() {
 // removeOne removes a single cell position from a group, and sets that cell's
 // group to 0 (invalid). This is common when some members of a group do not
 // advance to the next row. If a group becomes empty, it is completely deleted.
-func (s *state) removeOne(pos, groupID int) {
+func (s *state) removeOne(pos int) {
+	groupID := s.groupIDs[pos]
 	newGroup := []int{}
 	for _, p := range s.groups[groupID] {
 		if p == pos {
@@ -121,8 +122,8 @@ func (s *state) removeOne(pos, groupID int) {
 }
 
 func main() {
-	h := flag.Int("h", 5, "height")
-	w := flag.Int("w", 5, "width")
+	h := flag.Int("h", 10, "height")
+	w := flag.Int("w", 10, "width")
 	flag.Parse()
 	rand.Seed(time.Now().Unix())
 
