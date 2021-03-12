@@ -45,10 +45,51 @@ TODO: Describe set membership wiring
 */
 
 import (
+	"context"
+	"fmt"
 	"math/rand"
 	"time"
+
+	"github.com/misterikkit/automata/horizon"
+	"github.com/misterikkit/automata/wall"
 )
 
 func main() {
 	rand.Seed(time.Now().Unix())
+	maze := wall.NewMaze(10, 10)
+	loop := horizon.NewEventLoop()
+
+	ctrl := horizon.NewObject("controller", Controller(), loop)
+	cells := make([]horizon.Object, 10)
+	for i := range cells {
+		cells[i] = horizon.NewObject(fmt.Sprintf("cell-%02d", i), Cell(), loop)
+	}
+
+	ctrl.Wire(horizon.Wiring{"head": cells[0]})
+	for i := range cells {
+		j := i + 1
+		if j < len(cells) {
+			cells[i].Wire(horizon.Wiring{"nextCell": cells[j]})
+		} else {
+			cells[i].Wire(horizon.Wiring{"nextCell": ctrl})
+		}
+	}
+	updateTriggers(cells, maze, 0)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	loop.Run(ctx)
+	fmt.Println(maze)
+}
+
+func updateTriggers(cells []horizon.Object, maze *wall.Maze, row int) {
+	for i := range cells {
+		col := i
+		cells[i].Send(cells[i], "triggerEast", func() {
+			maze.Open(row, col, wall.East)
+		})
+		cells[i].Send(cells[i], "triggerSouth", func() {
+			maze.Open(row, col, wall.South)
+		})
+	}
 }
