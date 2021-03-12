@@ -215,3 +215,8 @@ func (m *Maze) cornerNW(row, col int) string {
 // +-+-+-+-+
 // |.|.|.|.|
 // +-+-+-+-+
+
+func (m *Maze) Diagram() string {
+	// TODO: this belongs elsewhere
+	return m.el.Diagram()
+}

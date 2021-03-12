@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"math/rand"
+	"os"
 	"time"
 )
 
@@ -14,6 +15,7 @@ func main() {
 	h := flag.Int("h", 5, "height")
 	w := flag.Int("w", 5, "width")
 	verbose := flag.Bool("v", false, "enable logging")
+	diagram := flag.String("diagram", "", "filename to write diagram")
 	flag.Parse()
 	if !*verbose {
 		log.SetOutput(io.Discard) // io.Discard is new in go1.16
@@ -32,4 +34,10 @@ func main() {
 
 	fmt.Printf("Generated %dx%d maze in %v\n", *h, *w, end.Sub(start))
 	fmt.Println(m)
+	if len(*diagram) > 0 {
+		err := os.WriteFile(*diagram, []byte(m.Diagram()), 0644)
+		if err != nil {
+			log.Printf("Diagram write fail: %f", err)
+		}
+	}
 }

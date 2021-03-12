@@ -18,11 +18,13 @@ type Object interface {
 
 // NewObject creates an object for the given script and connects it to the event loop.
 func NewObject(id string, script Script, el EventLoop) Object {
-	return &object{
+	o := &object{
 		id:        id,
 		script:    script,
 		eventLoop: el.(*eventLoop),
 	}
+	o.Send(o, "worldStart", nil)
+	return o
 }
 
 // Script represents a behavior attached to a Horizon object, which is a
