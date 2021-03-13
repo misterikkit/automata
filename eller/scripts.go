@@ -26,7 +26,7 @@ func Controller() horizon.Script {
 func Cell(last bool) horizon.Script {
 	var (
 		lastCell = last
-		// open funcs take the place of object pointer + moveTo
+		// open funcs each take the place of a trigger + wall object
 		openEast  func()
 		openSouth func()
 		// doubly linked list (cycle) of group members
