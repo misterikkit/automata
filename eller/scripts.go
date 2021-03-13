@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"math/rand"
 
 	"github.com/misterikkit/automata/horizon"
@@ -16,6 +17,7 @@ func Controller() horizon.Script {
 			self.Send(head, "computeEW", nil)
 		case "computeEW":
 			// computeEW is done now
+			self.Send(head, "computeNS", nil)
 		}
 	}
 }
@@ -31,7 +33,7 @@ func Cell() horizon.Script {
 		// temporary variable
 		swapBuddy horizon.Object
 
-		checkingNeighbor bool // are we mid-search for set presence?
+		groupHead bool // true if we should terminate a group walk here. (e.g. group search or group count)
 	)
 	return func(self horizon.Object, e horizon.Event) {
 		nextCell := self.Wires()["nextCell"]
@@ -46,12 +48,12 @@ func Cell() horizon.Script {
 		case "computeEW":
 			// check if nextCell is in the same group. Response is handled in "groupSearch"
 			// and "groupFound" events.
-			checkingNeighbor = true
+			groupHead = true
 			self.Send(groupNext, "groupSearch", nextCell)
 
 		case "groupSearch":
 			obj := e.Arg.(horizon.Object)
-			if !checkingNeighbor {
+			if !groupHead {
 				if self == obj {
 					self.Send(groupNext, "groupFound", obj)
 				}
@@ -59,8 +61,8 @@ func Cell() horizon.Script {
 					self.Send(groupNext, "groupSearch", obj)
 				}
 			}
-			if checkingNeighbor {
-				checkingNeighbor = false
+			if groupHead {
+				groupHead = false
 				// nextCell is not in our group!
 				// randomly decide to merge
 				if p(0.5) {
@@ -70,7 +72,7 @@ func Cell() horizon.Script {
 					// self.groupNext and nextCell.groupNext.
 					self.Send(nextCell, "getGroupNext", self)
 				} else {
-					// TODO: else is not allowed
+					// TODO: else is not supported in Horizon
 					// send "computeEW" to nextCell
 					self.Send(nextCell, "computeEW", nil)
 				}
@@ -113,15 +115,29 @@ func Cell() horizon.Script {
 			self.Send(nextCell, "computeEW", nil)
 
 		case "groupFound":
-			if !checkingNeighbor {
+			if !groupHead {
 				self.Send(groupNext, "groupFound", e.Arg)
 			}
-			if checkingNeighbor {
+			if groupHead {
 				// neighbor is in our group. Move on
-				checkingNeighbor = false
+				groupHead = false
 				self.Send(nextCell, "computeEW", nil)
 			}
+
+		case "computeNS":
+			groupHead = true
+			self.Send(groupNext, "groupCount", 1)
+
+		case "groupCount":
+			count := e.Arg.(int)
+			if !groupHead {
+				self.Send(groupNext, "groupCount", count+1)
+			}
+			if groupHead {
+				log.Printf("group with %v has size %d", self, count)
+			}
 		}
+
 	}
 }
 
