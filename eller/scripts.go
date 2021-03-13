@@ -21,12 +21,16 @@ func Controller(rows int, moveToNext func(), done func()) horizon.Script {
 			// computeNS is done now
 			moveToNext()
 			rows--
-			if rows > 0 {
-				self.Send(self, "computeEWBegin", nil)
+			if rows > 1 {
+				self.Send(head, "computeEW", nil)
 			}
-			if rows <= 0 {
-				done()
+			if rows == 1 {
+				self.Send(head, "finalRow", nil)
 			}
+		case "finalRow":
+			self.Send(head, "computeEW", nil)
+		case "finished":
+			done()
 		}
 	}
 }
@@ -44,7 +48,8 @@ func Cell(last bool) horizon.Script {
 		swapBuddy horizon.Object
 
 		groupHead bool // true if we should terminate a group walk here. (e.g. group search or group count)
-		rowDone   bool // tracks when both east and south decisions have been made for this cell
+		cellDone  bool // tracks when both east and south decisions have been made for this cell
+		finalRow  bool
 	)
 	return func(self horizon.Object, e horizon.Event) {
 		nextCell := self.Wires()["nextCell"]
@@ -56,11 +61,20 @@ func Cell(last bool) horizon.Script {
 		case "triggerSouth":
 			openSouth = e.Arg.(func())
 
+		case "finalRow":
+			finalRow = true
+			self.Send(nextCell, "finalRow", nil)
+
 		case "computeEW":
-			rowDone = false
+			cellDone = false
 			if lastCell {
-				// Skip last cell of each row so we don't open an outer wall.
-				self.Send(nextCell, "computeEW", nil)
+				if !finalRow {
+					// Skip last cell of each row so we don't open an outer wall.
+					self.Send(nextCell, "computeEW", nil)
+				}
+				if finalRow {
+					self.Send(nextCell, "finished", nil)
+				}
 			}
 			if !lastCell {
 				// check if nextCell is in the same group. Response is handled in
@@ -83,7 +97,8 @@ func Cell(last bool) horizon.Script {
 				groupHead = false
 				// nextCell is not in our group!
 				// randomly decide to merge
-				if p(0.5) {
+				// In final row, always merge
+				if finalRow || p(0.5) {
 					// invoke openEast
 					openEast()
 					// Swap the groupNext of self and nextCell, and the groupPrev of
@@ -147,10 +162,10 @@ func Cell(last bool) horizon.Script {
 			}
 
 		case "computeNS":
-			if rowDone {
+			if cellDone {
 				self.Send(nextCell, "computeNS", nil)
 			}
-			if !rowDone {
+			if !cellDone {
 				groupHead = true
 				self.Send(groupNext, "groupCount", 1)
 			}
@@ -169,7 +184,7 @@ func Cell(last bool) horizon.Script {
 			v := e.Arg.(vector)
 			// In this group, open v.x of the remaining v.y cells. In otherwords, open
 			// this cell with probability v.x/v.y
-			rowDone = true
+			cellDone = true
 			if p(v.x / v.y) {
 				openSouth()
 				if !groupHead {
