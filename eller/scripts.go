@@ -6,7 +6,7 @@ import (
 	"github.com/misterikkit/automata/horizon"
 )
 
-func Controller(moveToNext func()) horizon.Script {
+func Controller(rows int, moveToNext func(), done func()) horizon.Script {
 	return func(self horizon.Object, e horizon.Event) {
 		head := self.Wires()["head"]
 		switch e.Name {
@@ -20,7 +20,13 @@ func Controller(moveToNext func()) horizon.Script {
 		case "computeNS":
 			// computeNS is done now
 			moveToNext()
-			self.Send(self, "computeEWBegin", nil)
+			rows--
+			if rows > 0 {
+				self.Send(self, "computeEWBegin", nil)
+			}
+			if rows <= 0 {
+				done()
+			}
 		}
 	}
 }

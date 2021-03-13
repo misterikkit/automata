@@ -46,6 +46,7 @@ TODO: Describe set membership wiring
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"math/rand"
 	"time"
@@ -55,21 +56,28 @@ import (
 )
 
 func main() {
+	h := flag.Int("h", 10, "height")
+	w := flag.Int("w", 10, "width")
+	flag.Parse()
 	rand.Seed(time.Now().Unix())
-	maze := wall.NewMaze(10, 10)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	maze := wall.NewMaze(*h, *w)
 	loop := horizon.NewEventLoop()
 
-	cells := make([]horizon.Object, 10)
+	cells := make([]horizon.Object, *w)
 	for i := range cells {
 		last := i == len(cells)-1
 		cells[i] = horizon.NewObject(fmt.Sprintf("cell-%02d", i), Cell(last), loop)
 	}
 	// Workaround to simulate the moving and trigger detecting of wall objects
 	row := 0
-	ctrl := horizon.NewObject("controller", Controller(func() {
+	ctrl := horizon.NewObject("controller", Controller(*h, func() {
 		row++
 		updateTriggers(cells, maze, row)
-	}), loop)
+	}, cancel), loop)
 	updateTriggers(cells, maze, row)
 
 	ctrl.Wire(horizon.Wiring{"head": cells[0]})
@@ -82,8 +90,6 @@ func main() {
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
 	loop.Run(ctx)
 	fmt.Println(maze)
 }
