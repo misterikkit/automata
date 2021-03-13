@@ -59,12 +59,18 @@ func main() {
 	maze := wall.NewMaze(10, 10)
 	loop := horizon.NewEventLoop()
 
-	ctrl := horizon.NewObject("controller", Controller(), loop)
 	cells := make([]horizon.Object, 10)
 	for i := range cells {
 		last := i == len(cells)-1
 		cells[i] = horizon.NewObject(fmt.Sprintf("cell-%02d", i), Cell(last), loop)
 	}
+	// Workaround to simulate the moving and trigger detecting of wall objects
+	row := 0
+	ctrl := horizon.NewObject("controller", Controller(func() {
+		row++
+		updateTriggers(cells, maze, row)
+	}), loop)
+	updateTriggers(cells, maze, row)
 
 	ctrl.Wire(horizon.Wiring{"head": cells[0]})
 	for i := range cells {
@@ -75,7 +81,6 @@ func main() {
 			cells[i].Wire(horizon.Wiring{"nextCell": ctrl})
 		}
 	}
-	updateTriggers(cells, maze, 0)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
