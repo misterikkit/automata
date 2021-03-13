@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"math/rand"
 
 	"github.com/misterikkit/automata/horizon"
@@ -18,6 +17,8 @@ func Controller() horizon.Script {
 		case "computeEW":
 			// computeEW is done now
 			self.Send(head, "computeNS", nil)
+		case "computeNS":
+			// computeNS is done now
 		}
 	}
 }
@@ -35,6 +36,7 @@ func Cell(last bool) horizon.Script {
 		swapBuddy horizon.Object
 
 		groupHead bool // true if we should terminate a group walk here. (e.g. group search or group count)
+		rowDone   bool // tracks when both east and south decisions have been made for this cell
 	)
 	return func(self horizon.Object, e horizon.Event) {
 		nextCell := self.Wires()["nextCell"]
@@ -47,6 +49,7 @@ func Cell(last bool) horizon.Script {
 			openSouth = e.Arg.(func())
 
 		case "computeEW":
+			rowDone = false
 			if lastCell {
 				// Skip last cell of each row so we don't open an outer wall.
 				self.Send(nextCell, "computeEW", nil)
@@ -100,6 +103,10 @@ func Cell(last bool) horizon.Script {
 			obj := e.Arg.(horizon.Object)
 			groupNext = obj
 
+		case "setGroupPrev":
+			obj := e.Arg.(horizon.Object)
+			groupPrev = obj
+
 		case "swapGroupPrev":
 			obj := e.Arg.(horizon.Object)
 			// Trade groupPrev values with obj
@@ -132,8 +139,13 @@ func Cell(last bool) horizon.Script {
 			}
 
 		case "computeNS":
-			groupHead = true
-			self.Send(groupNext, "groupCount", 1)
+			if rowDone {
+				self.Send(nextCell, "computeNS", nil)
+			}
+			if !rowDone {
+				groupHead = true
+				self.Send(groupNext, "groupCount", 1)
+			}
 
 		case "groupCount":
 			count := e.Arg.(int)
@@ -141,12 +153,44 @@ func Cell(last bool) horizon.Script {
 				self.Send(groupNext, "groupCount", count+1)
 			}
 			if groupHead {
-				log.Printf("group with %v has size %d", self, count)
+				numToOpen := 1 + rand.Intn(count) // TODO: inline this ):
+				self.Send(groupNext, "openSouthMaybe", vector{x: float32(numToOpen), y: float32(count)})
+			}
+
+		case "openSouthMaybe":
+			v := e.Arg.(vector)
+			// In this group, open v.x of the remaining v.y cells. In otherwords, open
+			// this cell with probability v.x/v.y
+			rowDone = true
+			if p(v.x / v.y) {
+				openSouth()
+				if !groupHead {
+					self.Send(groupNext, "openSouthMaybe", vector{x: v.x - 1, y: v.y - 1})
+				}
+			} else {
+				// TODO: no else ):
+
+				// Remove self from the group
+				self.Send(groupNext, "setGroupPrev", groupPrev)
+				self.Send(groupPrev, "setGroupNext", groupNext)
+				if !groupHead {
+					// ordering here is weird since we need a ref to groupNext to send this
+					// message, but we want to update groupNext.groupPrev before it potentially
+					// updates its groupPrev.groupNext.
+					self.Send(groupNext, "openSouthMaybe", vector{x: v.x, y: v.y - 1})
+				}
+				groupNext, groupPrev = self, self
+			}
+			if groupHead {
+				groupHead = false
+				self.Send(nextCell, "computeNS", nil)
 			}
 		}
 
 	}
 }
+
+type vector struct{ x, y, z float32 }
 
 // p returns true with probability equal to p.
 func p(p float32) bool {
