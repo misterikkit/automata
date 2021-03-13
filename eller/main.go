@@ -62,7 +62,8 @@ func main() {
 	ctrl := horizon.NewObject("controller", Controller(), loop)
 	cells := make([]horizon.Object, 10)
 	for i := range cells {
-		cells[i] = horizon.NewObject(fmt.Sprintf("cell-%02d", i), Cell(), loop)
+		last := i == len(cells)-1
+		cells[i] = horizon.NewObject(fmt.Sprintf("cell-%02d", i), Cell(last), loop)
 	}
 
 	ctrl.Wire(horizon.Wiring{"head": cells[0]})

@@ -22,8 +22,9 @@ func Controller() horizon.Script {
 	}
 }
 
-func Cell() horizon.Script {
+func Cell(last bool) horizon.Script {
 	var (
+		lastCell = last
 		// open funcs take the place of object pointer + moveTo
 		openEast  func()
 		openSouth func()
@@ -46,10 +47,16 @@ func Cell() horizon.Script {
 			openSouth = e.Arg.(func())
 
 		case "computeEW":
-			// check if nextCell is in the same group. Response is handled in "groupSearch"
-			// and "groupFound" events.
-			groupHead = true
-			self.Send(groupNext, "groupSearch", nextCell)
+			if lastCell {
+				// Skip last cell of each row so we don't open an outer wall.
+				self.Send(nextCell, "computeEW", nil)
+			}
+			if !lastCell {
+				// check if nextCell is in the same group. Response is handled in
+				// "groupSearch" and "groupFound" events.
+				groupHead = true
+				self.Send(groupNext, "groupSearch", nextCell)
+			}
 
 		case "groupSearch":
 			obj := e.Arg.(horizon.Object)
